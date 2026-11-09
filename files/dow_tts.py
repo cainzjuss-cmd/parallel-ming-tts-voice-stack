@@ -383,7 +383,6 @@ def main():
         # they are indistinguishable from the outside. Every settings change records argv,
         # the calling process id and the resulting port set to cache/scratch/pool_settings.log.
         try:
-            import time
             with open(os.path.join(TMP, "pool_settings.log"), "a", encoding="utf8") as _fh:
                 _fh.write("%s SETTING argv=%r ppid=%d\n"
                           % (time.strftime("%H:%M:%S"), sys.argv[1:], os.getppid()))
@@ -464,7 +463,6 @@ def main():
             # call the UI is waiting on. The settle is what stops a second holder from loading
             # its weight set on top of one that is still tearing down.
             pool_down()
-            import time
             for _ in range(30):
                 if holder_pid() is None:
                     break
