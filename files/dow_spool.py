@@ -227,16 +227,25 @@ def finish_item(wav, idx, atempo):
     return pth
 
 
-def ming_inputs(text, rtext, lang):
+def ming_inputs(text, rtext, lang, meta=None):
     """clone = reference audio + exact transcript (tightest timbre lock).
     freeform = prose delivery instruction + optional reference audio (no transcript needed,
-    which is the only route that works for clipped/vocoded recordings ASR cannot transcribe)."""
-    task = os.environ.get("DOW_TASK", "clone")
+    which is the route that works for clipped/vocoded recordings).
+
+    `task` and `instruction` are readable from voice.json, because the need is per voice actor,
+    not global: the Venerable Dreadnought's reference (its transcripts confirmed correct against
+    the game, 8-13 chars/s, complete sentences) renders as speech-shaped noise under clone and
+    speaks the same sentence cleanly under freeform - measured on the SAME reference and the SAME
+    83-char sentence: clone 0.10, freeform 0.99. Nothing about that voice's text was wrong."""
+    meta = meta or {}
+    # precedence, stated once because it is how these knobs get A/B-ed: the environment is the
+    # experiment, voice.json is the permanent per-voice setting, the literal is the default.
+    task = os.environ.get("DOW_TASK") or meta.get("task") or "clone"
     ins = {"model": ["2", 0], "text": text, "task": task, "seed": 7, "cfg": float(os.environ.get("DOW_CFG", "2.0")),
            "flow_steps": int(os.environ.get("DOW_FLOW_STEPS", "16")), "sigma": 0.25, "temperature": 0.0,
            "max_steps": int(os.environ.get("DOW_MAX_STEPS", "250")), "trim": True}
     if task == "freeform":
-        ins["task.instruction"] = (os.environ.get("DOW_INSTR") or
+        ins["task.instruction"] = (os.environ.get("DOW_INSTR") or meta.get("instruction") or
                                    "Natural, expressive delivery matching the character of the reference recording.")
         ins["task.reference_audio"] = ["1", 0]
     else:
@@ -246,7 +255,7 @@ def ming_inputs(text, rtext, lang):
     return ins
 
 
-def submit(text, ref, rtext, lang, base):
+def submit(text, ref, rtext, lang, base, meta=None):
     """Queue one Ming clone job; returns the ComfyUI output wav path (blocking on that job)."""
     rel = "dow_voices/" + os.path.basename(os.path.dirname(ref)) + ".wav"
     dst = os.path.join(COMFY_IN, rel.replace("/", os.sep))
@@ -260,7 +269,7 @@ def submit(text, ref, rtext, lang, base):
         "2": {"class_type": "MingLoadModel", "inputs": {"model": MING_MODEL,
                                                         "precision": tts_pool.graph_precision(),
                                                         "device": "auto", "download_if_missing": False}},
-        "3": {"class_type": "MingGenerate", "inputs": ming_inputs(text, rtext, lang)},
+        "3": {"class_type": "MingGenerate", "inputs": ming_inputs(text, rtext, lang, meta)},
         "4": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["3", 0],
                                                             "filename_prefix": "dow_spool/" + cid, "format": "flac"}},
     }
@@ -344,7 +353,7 @@ def run(vid, text, mytok):
                     out[i] = False
                 return
             try:
-                w = submit(parts[i], ref, rtext, meta.get("language", "English"), base)
+                w = submit(parts[i], ref, rtext, meta.get("language", "English"), base, meta)
                 with lk:
                     out[i] = finish_item(w, i, atempo)
                 print("item %d ready +%.1fs" % (i, time.time() - t0), flush=True)
@@ -470,7 +479,7 @@ def main():
         tgt = len(ref_txt) / max(span, 1.0)
 
         def measure():
-            w = submit(probe, ref, rtext, meta.get("language", "English"), pool()[0])
+            w = submit(probe, ref, rtext, meta.get("language", "English"), pool()[0], meta)
             d = duration(w)
             return len(probe) / max(d, 1.0), d
 

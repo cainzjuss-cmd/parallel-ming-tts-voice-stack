@@ -287,16 +287,26 @@ def synth_comfy(text, ref, rtext, lang):
         shutil.copyfile(ref, dst)
     cid = uuid.uuid4().hex[:8]
     wf = "hermes_dow/" + cid
+    # the generator inputs, built plainly: clone locks the timbre hardest (reference audio plus
+    # its exact transcript) but a heavily vocoded voice resolves that pair as noise, so voice.json
+    # can put that voice on the freeform route instead - prose instruction, reference audio, no
+    # transcript to match. Measured on the Venerable Dreadnought with the SAME reference and the
+    # SAME sentence: clone 0.10, freeform 0.99.
+    task = os.environ.get("DOW_TASK") or meta.get("task") or "clone"   # env = experiment, voice.json = permanent
+    ins = {"model": ["2", 0], "text": text, "seed": 7, "cfg": 2.0, "flow_steps": fs,
+           "sigma": 0.25, "temperature": 0.0, "max_steps": ms, "trim": True,
+           "task": task, "task.reference_audio": ["1", 0]}
+    if task == "freeform":
+        ins["task.instruction"] = (os.environ.get("DOW_INSTR") or meta.get("instruction") or
+                                   "Natural, expressive delivery matching the character of the reference recording.")
+    else:
+        ins["task.reference_text"] = rtext
+        ins["task.language"] = lang or "English"
     graph = {
         "1": {"class_type": "LoadAudio", "inputs": {"audio": rel}},
         "2": {"class_type": "MingLoadModel", "inputs": {"model": MING_MODEL, "precision": "auto",
                                                         "device": "auto", "download_if_missing": False}},
-        "3": {"class_type": "MingGenerate", "inputs": {
-            "model": ["2", 0], "text": text, "task": "clone",
-            "task.reference_audio": ["1", 0], "task.reference_text": rtext,
-            "task.language": lang or "English",
-            "seed": 7, "cfg": 2.0, "flow_steps": 10, "sigma": 0.25,
-            "temperature": 0.0, "max_steps": 250, "trim": True}},
+        "3": {"class_type": "MingGenerate", "inputs": ins},
         "4": {"class_type": "SaveAudioAdvanced", "inputs": {"audio": ["3", 0],
                                                             "filename_prefix": wf, "format": "flac"}},
     }
