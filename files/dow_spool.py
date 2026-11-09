@@ -462,15 +462,63 @@ def main():
     if a.cmd == "calibrate":
         probe = "The archive is verified and the total is one hundred sixty three point six gigabytes."
         ref, rtext, meta = load_voice(a.voice)
-        w = submit(probe, ref, rtext, meta.get("language", "English"), pool()[0])
-        gen_chars, gen_dur = len(probe), duration(w)
         ref_txt = open(os.path.join(VOICES, a.voice, "ref_text.txt"), encoding="utf8").read().strip()
-        tgt = len(ref_txt) / max(duration(os.path.join(VOICES, a.voice, "ref.wav")), 1.0)
-        cur = gen_chars / max(gen_dur, 1.0)
+        # Rate the reference over its SPEECH, not its whole length: a reference spliced from many
+        # game clips carries the gaps put between them, and counting those as speech drags every
+        # multi-clip voice toward a crawl. voice.json carries speech_s when the builder knows it.
+        span = meta.get("speech_s") or duration(os.path.join(VOICES, a.voice, "ref.wav"))
+        tgt = len(ref_txt) / max(span, 1.0)
+
+        def measure():
+            w = submit(probe, ref, rtext, meta.get("language", "English"), pool()[0])
+            d = duration(w)
+            return len(probe) / max(d, 1.0), d
+
+        cur, pd = measure()
+        # Both ways this measurement goes wrong are silent:
+        #  (a) the probe clip comes out TRUNCATED - 2.4 s for 85 chars reads 31 chars/s and pins
+        #      the voice at the low clamp forever; a clip that RAMBLES (long references can make
+        #      the model pad with pauses/repeats) reads far too slow and pins the high clamp;
+        #  (b) the reference is too short to carry a pace at all - a 1.7 s bark with a two-word
+        #      transcript measures ~10 chars/s for reasons that have nothing to do with the voice.
+        # 85 chars is 3.4-10.6 s at any credible 8-25 chars/s; 8 s / 40 chars is the reference
+        # floor. Outside either, borrow the tempo of the actor's other voices instead of inventing
+        # one from a bad measurement.
+        lo, hi = len(probe) / 25.0, len(probe) / 8.0
+        if not (lo <= pd <= hi):
+            print("probe clip %.2f s outside %.1f-%.1f s for %d chars: retrying once"
+                  % (pd, lo, hi, len(probe)), flush=True)
+            cur, pd = measure()
+        ok_probe, ok_ref = lo <= pd <= hi, (span >= 8.0 and len(ref_txt) >= 40)
+        if not (ok_probe and ok_ref):
+            actor = meta.get("actor") or ""
+            fam = []
+            for d in sorted(os.listdir(VOICES)):
+                if d == a.voice or not os.path.isdir(os.path.join(VOICES, d)):
+                    continue
+                try:
+                    m2 = json.load(open(os.path.join(VOICES, d, "voice.json"), encoding="utf8"))
+                except (OSError, ValueError):
+                    continue
+                if actor and m2.get("actor") == actor and m2.get("speech_s", 0) >= 8.0 \
+                        and "atempo" in m2:
+                    fam.append(m2["atempo"])
+            why = ("reference too short to measure (%.1f s speech, %d chars)" % (span, len(ref_txt))
+                   if not ok_ref else "probe clip not credible (%.2f s)" % pd)
+            f = round(sorted(fam)[len(fam) // 2], 3) if fam else 1.0
+            meta["atempo"] = f
+            meta["atempo_note"] = ("not measured: %s; %s%.3f from %d measured sibling voice(s) of "
+                                   "the same actor" % (why, "borrowed " if fam else "defaulted to ",
+                                                       f, len(fam)))
+            json.dump(meta, open(os.path.join(VOICES, a.voice, "voice.json"), "w",
+                                 encoding="utf8"), indent=1)
+            print("skip-measure %s: %s -> atempo %.3f" % (a.voice, meta["atempo_note"], f))
+            return
         raw = tgt / max(cur, 0.01)            # <1 = slow the synth down toward the clip pace
         f = max(0.75, min(1.30, 1.0 + 0.55 * (raw - 1.0)))   # damp so no character gets an extreme stretch
         meta["rate_ratio"] = round(raw, 3)
         meta["atempo"] = round(f, 3)   # edit by hand to taste
+        meta["atempo_note"] = ""
         meta["rate_ref"] = round(tgt, 2)
         meta["rate_synth"] = round(cur, 2)
         json.dump(meta, open(os.path.join(VOICES, a.voice, "voice.json"), "w", encoding="utf8"), indent=1)

@@ -353,6 +353,12 @@ def main():
         if os.path.isdir(VOICES):
             for vid in sorted(os.listdir(VOICES)):
                 d = os.path.join(VOICES, vid)
+                # Only directories are voices. The pool's settings file and the generation token
+                # deliberately live in this same folder so the chip can reach them in one call,
+                # and without this filter the menu grew a "pool.json"/POO row and a
+                # ".generation"/.GE row in front of everything.
+                if vid.startswith(".") or not os.path.isdir(d):
+                    continue
                 mj = os.path.join(d, "voice.json")
                 meta = json.load(open(mj, encoding="utf8")) if os.path.isfile(mj) else {}
                 rows.append({"id": vid, "name": meta.get("name", vid),
