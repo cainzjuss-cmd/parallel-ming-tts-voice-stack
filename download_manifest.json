@@ -1,0 +1,66 @@
+{
+  "pin_date": "2026-11-08",
+  "verified_on": "Windows 10, RTX 4090 24 GB, 64 GB RAM, ComfyUI 0.44.0 (portable git 2c75dc1b379a), Ming node 'Add Ming 3 TTS v1.0.0'. Nothing here was verified on Linux; the Linux installer is written from these pins and has to be run to find out.",
+  "roots": {
+    "{comfy_root}": "COMFY_ROOT env var, or tts_pack.json 'comfy_root', or ~/ComfyUI on Linux / C:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable on Windows."
+  },
+  "items": [
+    {
+      "id": "comfyui",
+      "kind": "git",
+      "url": "https://github.com/comfyanonymous/ComfyUI",
+      "ref": "v0.44.0; this machine's portable tree sits at commit 2c75dc1b379a (12 chars, from the local checkout)",
+      "dest": "{comfy_root}/ComfyUI",
+      "required": true,
+      "handled_by": "installer (dl.py skips git items)"
+    },
+    {
+      "id": "ming_node",
+      "kind": "git",
+      "url": "https://github.com/Saganaki22/ComfyUI-Ming-3-tts",
+      "ref": "ab3e358d4b15de8aad4bde90d149546e2d85485c (commit titled 'Add Ming 3 TTS v1.0.0', as listed on the repo page 2026-11-08)",
+      "dest": "{comfy_root}/ComfyUI/custom_nodes/ComfyUI-Ming-3-tts",
+      "required": true,
+      "note": "Install WITH its assets/ folder (campplus.onnx and the tokenizer live there). pip install -r its requirements.txt: onnxruntime, tqdm. Optional Tiny-9B CUDA kernels need 'fla-core==0.4.2' and working Triton."
+    },
+    {
+      "id": "ming_05b_int8_convrot",
+      "kind": "file",
+      "url": "https://huggingface.co/drbaph/Ming-3.0-tts-ComfyUI/resolve/main/checkpoints/Ming-3.0-tts-0.5b-int8-convrot/ming-3-tts-0.5b-int8-convrot.safetensors",
+      "dest": "{comfy_root}/ComfyUI/models/checkpoints/Ming-3.0-tts-0.5b-int8-convrot/ming-3-tts-0.5b-int8-convrot.safetensors",
+      "required": true,
+      "size_bytes": 2602496328,
+      "sha256": "22b611afa67f5eefa2692a013c8d55d9e7c19e91fd9abb4d6146bc2853659180",
+      "verified": "both figures computed locally from the file this stack actually runs, 2026-11-08"
+    },
+    {
+      "id": "ming_05b_fp32_merged",
+      "kind": "file",
+      "url": "https://huggingface.co/drbaph/Ming-3.0-tts-ComfyUI/resolve/main/checkpoints/Ming-3.0-tts-0.5b/model.safetensors",
+      "dest": "{comfy_root}/ComfyUI/models/checkpoints/Ming-3.0-tts-0.5b/model.safetensors",
+      "required": false,
+      "verified": false,
+      "note": "Needed only for the fp32 precision toggle (the smoother output on headphones). NOT downloaded on this machine - the shared pool upscales the int8 weights instead, so the fp32 path here runs from the int8 checkpoint. URL is from the node README; size and hash unverified."
+    },
+    {
+      "id": "ming_tiny_9b_int8_convrot",
+      "kind": "file",
+      "url": "https://huggingface.co/drbaph/Ming-3.0-tts-ComfyUI/resolve/main/checkpoints/Ming-3.0-tts-tiny-9b-int8-convrot/ming-3-tts-tiny-9b-int8-convrot.safetensors",
+      "dest": "{comfy_root}/ComfyUI/models/checkpoints/Ming-3.0-tts-tiny-9b-int8-convrot/ming-3-tts-tiny-9b-int8-convrot.safetensors",
+      "required": false,
+      "verified": false,
+      "note": "Never run here: 9B does not leave room for the rest of the desktop on 24 GB alongside the TTS pool. Marked optional and untested."
+    }
+  ],
+  "system_packages": {
+    "ubuntu_2204_2404": ["ffmpeg", "python3-venv", "python3-pip"],
+    "windows": "the portable build bundles python_embeded and ffmpeg; no system python needed",
+    "playback_ubuntu": "one of: ffplay (ffmpeg), pw-play (wireplumber/pipewire), paplay (pulseaudio-utils)"
+  },
+  "deliberately_absent": [
+    "any .wav, .flac or mp3 taken from Dawn of War / DoW II / DoW III, including extracted speech banks, the derived reference clips and their ASR transcripts",
+    "the character catchphrases and persona lines from voice.json (they are game text)",
+    "model weights themselves in this archive (only URLs + hashes above)",
+    "any Windows-only absolute path: every path resolves from env vars or tts_pack.json"
+  ]
+}

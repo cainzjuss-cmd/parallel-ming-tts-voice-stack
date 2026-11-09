@@ -1,0 +1,52 @@
+== 1. sandbox home (env must override files/tts_pack.json, which pins this box's live roots)
+   sandbox: C:/Users/Sander/tts-stack-pack/testhome  (its own pool.json, voices and scratch)
+== 2. confirm the pack resolves to the SANDBOX, not to the live home
+   HERMES_HOME  C:/Users/Sander/tts-stack-pack/testhome
+   TOOLS_DIR    C:/Users/Sander/tts-stack-pack/testhome\tools
+   SCRATCH      C:/Users/Sander/tts-stack-pack/testhome\cache\scratch
+   VOICES       C:/Users/Sander/tts-stack-pack/testhome\tts-voices
+   COMFY_ROOT   O:/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable
+   MODEL_DIR    E:/ai-models/comfy/ming-tts
+   SHARE_LOG    C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/share_path.log
+   pool.json    C:/Users/Sander/tts-stack-pack/testhome\tts-voices\pool.json
+   actual       C:/Users/Sander/tts-stack-pack/testhome\cache\scratch\ming_weightd.actual
+   CFG file used: <read: C:/Users/Sander/tts-stack-pack/testhome\tools\tts_pack.json>
+   OS=windows SPAWN_DETACH={'creationflags': 134218248}
+   pool settings: {'precision': 'fp32', 'workers': 3, 'flavor': True}
+   VERDICT: sandbox roots, no live leak
+== 3. stop the LIVE pool (replies go silent from here until the restore)
+down: killed 24724,27812,30052, 0/3 still answering
+   ports clear
+   card settled at 9655 MiB after 4 polls; now reading headroom through the pack shim
+gpu used (23.98828125, 9.427734375)   free commit 38.8 GB   (shim: C:/Users/Sander/tts-stack-pack/testhome/tools)
+== 4. boot the PACK pool
+spooling 3 workers, holder 30420 (cold start takes ~60 s)
+warm 8190: clone ok (gpu 15900 -> 16231 MiB)
+warm 8189: clone ok (gpu 15900 -> 16231 MiB)warm 8188: clone ok (gpu 15900 -> 16231 MiB)
+pool ready: 8188,8189,8190 3 worker(s), precision=fp32, gpu 16226 MiB
+   answering: 8188 8189 8190 
+   bind path used (ZERO-COPY expected, not KEEP-LOAD):
+     worker pids this boot: 27876 5896 23436 
+     pid 27876 -> 27876 ZERO-COPY bound=1180 bad=0   [log: C:/Users/Sander/AppData/Local/hermes/cache/scratch/share_path.log]
+     pid 5896 -> 5896 ZERO-COPY bound=1180 bad=0   [log: C:/Users/Sander/AppData/Local/hermes/cache/scratch/share_path.log]
+== 5. render the control through the PACK spooler
+item 0 (1.6s) played at +12.0s, waited 7.5s for it to generate
+item 2 ready +12.1s
+item 1 ready +17.8s
+item 1 (5.4s) played at +18.4s, waited 6.0s for it to generate
+item 2 (1.9s) played at +18.7s, waited 0.0s for it to generate
+ok 18792 3 items, 8.9s spoken, first audio at +12.0s C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/spool_farseer_1794184809.wav
+   pack render : 9.45 s  834006 bytes  md5 60f1f0b9f4f68a2a9e0217e3fb9b8e09  (1 ch 44100 Hz 16 bit)
+   control     : 9.45 s  834006 bytes  md5 60f1f0b9f4f68a2a9e0217e3fb9b8e09
+   RESULT      : BIT-EXACT - the port changed nothing
+== 6. one AUDIBLE run through the pack (the benchmark path skips playback, so the
+      shim's PlaySound/barge-in code is otherwise untested)
+item 1 ready +8.4s
+item 1 (1.6s) played at +10.3s, waited 2.3s for it to generate
+item 2 (1.9s) played at +12.4s, waited 0.0s for it to generate
+ok 12522 3 items, 5.1s spoken, first audio at +6.2s C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/spool_farseer_1794184828.wav
+== 7. pack pool down (live restore runs from the trap on exit)
+down: killed 30420, 0/3 still answering
+== regression render exit code: 0
+[regress] restoring the LIVE pool ... (LEAVE_DOWN=1)
+[regress] live pool left DOWN (user's standing choice)

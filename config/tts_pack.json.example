@@ -1,0 +1,26 @@
+{
+  "_comment": "Copy next to the tools as tts_pack.json (or export the same values as env vars). Env wins over this file, and this file wins over the per-OS defaults baked into files/stack_paths.py. Every tool resolves its paths through that one place, so a stale guess in one process is what makes replies go silent.",
+  "hermes_home": "~/.hermes",
+  "tools_dir": "~/.hermes/tools",
+  "scratch": "~/.hermes/cache/scratch",
+  "voices": "~/.hermes/tts-voices",
+  "ab_dir": "~/.hermes/tts-ab",
+  "comfy_root": "~/ComfyUI",
+  "model_dir": "~/ComfyUI/ComfyUI/models/checkpoints/Ming-3.0-tts-0.5b-int8-convrot",
+  "share_log": "~/.hermes/cache/scratch/share_path.log",
+
+  "_env_names": {
+    "HERMES_HOME": "set this if your Hermes stores its home somewhere other than ~/.hermes",
+    "COMFY_ROOT": "root that contains ComfyUI/ (and python_embeded on Windows portable)",
+    "MING_MODEL_DIR": "folder holding the .safetensors checkpoint",
+    "MING_SHARE_LOG": "where the node records which bind path each boot took; unset means no record, which makes a silent regression invisible",
+    "MING_SHARE": "set by the holder for its children; do not set it yourself",
+    "MING_KEEP_LOAD": "1 = restore the node's own load-then-swap (private copy) for an A/B",
+    "MING_FP32_STREAM": "1 = fp32 goes back to independent streaming workers instead of the shared pool",
+    "DOW_FLOW_STEPS": "fidelity dial, default 16",
+    "DOW_MAX_CHUNK": "chars per spoken chunk, default 160 (decay past ~6 s of speech per decode)",
+    "DOW_EDGE_FLOOR": "dBFS floor for per-clip silence trim, default -45; DOW_EDGES_OFF=1 disables",
+    "DOW_NOPLAY": "1 = render without playing (benchmarks)",
+    "DOW_GROUP": "1 = repack whole sentences up to the cap (faster, worse endings - the reason per-sentence was chosen by ear)"
+  }
+}

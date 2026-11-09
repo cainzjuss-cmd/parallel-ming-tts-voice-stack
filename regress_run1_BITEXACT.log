@@ -1,0 +1,49 @@
+== 1. sandbox home (env must override files/tts_pack.json, which pins this box's live roots)
+   sandbox: C:/Users/Sander/tts-stack-pack/testhome  (its own pool.json, voices and scratch)
+== 2. confirm the pack resolves to the SANDBOX, not to the live home
+   HERMES_HOME  C:/Users/Sander/tts-stack-pack/testhome
+   TOOLS_DIR    C:/Users/Sander/tts-stack-pack/testhome\tools
+   SCRATCH      C:/Users/Sander/tts-stack-pack/testhome\cache\scratch
+   VOICES       C:/Users/Sander/tts-stack-pack/testhome\tts-voices
+   COMFY_ROOT   O:/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable
+   MODEL_DIR    E:/ai-models/comfy/ming-tts
+   SHARE_LOG    C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/share_path.log
+   pool.json    C:/Users/Sander/tts-stack-pack/testhome\tts-voices\pool.json
+   actual       C:/Users/Sander/tts-stack-pack/testhome\cache\scratch\ming_weightd.actual
+   CFG file used: <read: C:/Users/Sander/tts-stack-pack/testhome\tools\tts_pack.json>
+   OS=windows SPAWN_DETACH={'creationflags': 134218248}
+   pool settings: {'precision': 'fp32', 'workers': 3, 'flavor': True}
+   VERDICT: sandbox roots, no live leak
+== 3. stop the LIVE pool (replies go silent from here until the restore)
+down: killed nothing, 0/3 still answering
+   ports clear
+gpu used (23.98828125, 22.462890625)   free commit 31.9 GB   (shim: C:/Users/Sander/tts-stack-pack/testhome/tools)
+== 4. boot the PACK pool
+capping 3 workers to 1: fp32: gpu free 1.5 of 24 GB, minus 1.5 margin, minus 4.8 weights = -4.8 / 0.20 per decode -> -25 | commit free 31.9, minus 6.0 margin, minus 4.0 holder = 21.9 / 4.50 per worker -> 4
+spooling 1 workers, holder 29632 (cold start takes ~60 s)
+warm 8188: clone ok (gpu 23859 -> 23732 MiB)
+pool ready: 8188 1 worker(s), precision=fp32, gpu 23768 MiB
+   answering: 8188 
+   bind path used (ZERO-COPY expected, not KEEP-LOAD):
+     (no share log written - check MING_SHARE_LOG plumbing)
+== 5. render the control through the PACK spooler
+item 0 (1.6s) played at +16.3s, waited 11.8s for it to generate
+item 1 ready +28.3s
+item 1 (5.4s) played at +28.9s, waited 12.3s for it to generate
+item 2 ready +34.5s
+item 2 (1.9s) played at +35.0s, waited 5.8s for it to generate
+ok 35133 3 items, 8.9s spoken, first audio at +16.3s C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/spool_farseer_1794170890.wav
+   pack render : 9.45 s  834006 bytes  md5 60f1f0b9f4f68a2a9e0217e3fb9b8e09  (1 ch 44100 Hz 16 bit)
+   control     : 9.45 s  834006 bytes  md5 60f1f0b9f4f68a2a9e0217e3fb9b8e09
+   RESULT      : BIT-EXACT - the port changed nothing
+== 6. one AUDIBLE run through the pack (the benchmark path skips playback, so the
+      shim's PlaySound/barge-in code is otherwise untested)
+item 1 (1.6s) played at +16.8s, waited 4.0s for it to generate
+item 2 ready +20.9s
+item 2 (1.9s) played at +23.2s, waited 4.3s for it to generate
+ok 23220 3 items, 5.1s spoken, first audio at +10.9s C:/Users/Sander/tts-stack-pack/testhome/cache/scratch/spool_farseer_1794170926.wav
+== 7. pack pool down (live restore runs from the trap on exit)
+down: killed 29632, 0/1 still answering
+== regression render exit code: 0
+[regress] restoring the LIVE pool ...
+[regress] live pool answering: 8188 8189 8190 
