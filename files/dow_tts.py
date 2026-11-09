@@ -287,11 +287,11 @@ def synth_comfy(text, ref, rtext, lang):
         shutil.copyfile(ref, dst)
     cid = uuid.uuid4().hex[:8]
     wf = "hermes_dow/" + cid
-    # the generator inputs, built plainly: clone locks the timbre hardest (reference audio plus
-    # its exact transcript) but a heavily vocoded voice resolves that pair as noise, so voice.json
-    # can put that voice on the freeform route instead - prose instruction, reference audio, no
-    # transcript to match. Measured on the Venerable Dreadnought with the SAME reference and the
-    # SAME sentence: clone 0.10, freeform 0.99.
+    # the generator inputs, built plainly: clone (reference audio plus its exact transcript) is the
+    # route every voice on this stack uses. `task` in voice.json exists as an escape hatch for
+    # anyone who wants prose instruction instead of a transcript - the same vocoded dreadnought
+    # reference scored clone 0.10 / freeform 0.99 - but the owner rejected that route: the fix that
+    # stayed was a shorter reference (first 3 clips of the group, 15.3 s, clone) not a mode change.
     task = os.environ.get("DOW_TASK") or meta.get("task") or "clone"   # env = experiment, voice.json = permanent
     ins = {"model": ["2", 0], "text": text, "seed": 7, "cfg": 2.0, "flow_steps": fs,
            "sigma": 0.25, "temperature": 0.0, "max_steps": ms, "trim": True,
@@ -455,6 +455,14 @@ def main():
 
     if a.cmd == "pool":
         act = (a.arg2 or "status").lower()
+        if a.workers and act in ("up", "restart"):
+            # `pool up --workers N` writes the switch and boots in one call, so a scripted start can
+            # never boot more than the user asked for. "off" has no number of its own (MIN_WORKERS is
+            # 1) - off is simply "no live pool" - so a boot that names no count reuses whatever
+            # number the last capacity cap happened to leave in pool.json. That is how a chip click
+            # on 7 workers, capped to 5 by a fuller card, persisted 5 and then booted 5 fp32 workers
+            # (a configuration that has died before) behind a user who had asked for off.
+            tts_pool.set_workers(a.workers)
         if act in ("up", "down", "restart"):
             # The chip's on/off switch lands here as `pool down`, and a spontaneous death
             # produces the same outside picture (ports dead, announcement cleared). One line

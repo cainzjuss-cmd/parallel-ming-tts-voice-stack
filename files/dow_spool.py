@@ -229,14 +229,15 @@ def finish_item(wav, idx, atempo):
 
 def ming_inputs(text, rtext, lang, meta=None):
     """clone = reference audio + exact transcript (tightest timbre lock).
-    freeform = prose delivery instruction + optional reference audio (no transcript needed,
-    which is the route that works for clipped/vocoded recordings).
+    freeform = prose delivery instruction + optional reference audio (no transcript needed).
 
-    `task` and `instruction` are readable from voice.json, because the need is per voice actor,
-    not global: the Venerable Dreadnought's reference (its transcripts confirmed correct against
-    the game, 8-13 chars/s, complete sentences) renders as speech-shaped noise under clone and
-    speaks the same sentence cleanly under freeform - measured on the SAME reference and the SAME
-    83-char sentence: clone 0.10, freeform 0.99. Nothing about that voice's text was wrong."""
+    The knob is here because it is cheap and someone may want it, NOT because it is the fix. The
+    owner's rule, stated after measuring both: every voice stays on clone, and a voice that
+    truncates or produces noise gets a TIGHTER reference, taken in the user's own clip order.
+    Measured on the Venerable Dreadnought with one 83-char sentence: 28 s / 6-clip reference in
+    clone mode = 0.10; freeform on that same reference = 0.99; and the route actually kept - the
+    first 3 clips of the same group, 15.3 s, in clone mode, which probed at 1.00. Nothing about
+    that voice's transcripts was wrong; the reference was simply too long."""
     meta = meta or {}
     # precedence, stated once because it is how these knobs get A/B-ed: the environment is the
     # experiment, voice.json is the permanent per-voice setting, the literal is the default.
